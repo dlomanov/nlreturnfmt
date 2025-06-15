@@ -167,15 +167,12 @@ func (f *formater) format(c *astutil.Cursor) bool {
 	}
 
 	if f.shouldInsert(c) {
-		c.InsertBefore(&ast.EmptyStmt{
-			Semicolon: 0,
-			Implicit:  true,
-		})
+		c.InsertBefore(newBlankLine(c.Node()))
 		f.modified = true
 
 		if f.verbose {
 			pos := f.fset.Position(c.Node().Pos())
-			fmt.Printf("Inserted blank line before %s at %s\n", name, pos)
+			fmt.Printf("- inserted blank line before %s at %s\n", name, pos)
 		}
 	}
 
@@ -204,3 +201,12 @@ func (f *formater) shouldInsert(ret *astutil.Cursor) bool {
 }
 
 func (f *formater) line(pos token.Pos) int { return f.fset.Position(pos).Line }
+
+func newBlankLine(node ast.Node) *ast.ExprStmt {
+	return &ast.ExprStmt{
+		X: &ast.Ident{
+			NamePos: node.Pos(),
+			Name:    "", // Empty identifier creates line break
+		},
+	}
+}

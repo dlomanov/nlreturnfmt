@@ -155,114 +155,52 @@ func (f *Formater) formatBytes(filename string, src []byte) ([]byte, bool, error
 }
 
 func (f *formater) format(c *astutil.Cursor) bool {
-	switch node := c.Node().(type) {
-	case *ast.CaseClause:
-		f.processBlock(c, node.Body)
-	case *ast.CommClause:
-		f.processBlock(c, node.Body)
-	case *ast.BlockStmt:
-		f.processBlock(c, node.List)
-	}
-
-	return true
-}
-func (f *formater) processBlock(c *astutil.Cursor, block []ast.Stmt) {
-	// Process statements in reverse order to avoid index issues when inserting
-	for i := len(block) - 1; i >= 0; i-- {
-		stmt := block[i]
-
-		switch stmt.(type) {
-		case *ast.BranchStmt, *ast.ReturnStmt:
-			if f.shouldInsertBlankLine(block, i) {
-				f.insertBlankLineBefore(c, i)
-			}
-		}
-	}
-}
-
-func (f *formater) shouldInsertBlankLine(block []ast.Stmt, returnIndex int) bool {
-	// Rule 1: Return must not be the first statement
-	if returnIndex == 0 {
-		return false
-	}
-
-	// Rule 2: Check if previous statement is already empty (blank line exists)
-	prevStmt := block[returnIndex-1]
-	if _, isEmpty := prevStmt.(*ast.EmptyStmt); isEmpty {
-		return false
-	}
-
-	// Rule 3: Check if return is "alone" in small block (block-size rule)
-	if f.isReturnAloneInBlock(block, returnIndex) {
-		return false
-	}
-
-	// Rule 4: Check line difference (similar to original linter logic)
-	stmt := block[returnIndex]
-	prevStmt = block[returnIndex-1]
-
-	stmtLine := f.fset.Position(stmt.Pos()).Line
-	prevLine := f.fset.Position(prevStmt.End()).Line
-
-	// If there's already a blank line, don't add another
-	if stmtLine-prevLine > 1 {
-		return false
-	}
-
-	return true
-}
-
-func (f *formater) isReturnAloneInBlock(block []ast.Stmt, returnIndex int) bool {
-	nonEmptyCount := uint(0)
-	for i, stmt := range block {
-		if i == returnIndex {
-			continue // Skip the return statement itself
-		}
-		if _, isEmpty := stmt.(*ast.EmptyStmt); !isEmpty {
-			nonEmptyCount++
-		}
-	}
-
-	return nonEmptyCount <= f.blockSize
-}
-
-func (f *formater) insertBlankLineBefore(c *astutil.Cursor, returnIdx int) {
-	// Get the current block node
-	var stmtList *[]ast.Stmt
+	var name = "unknown"
 
 	switch node := c.Node().(type) {
-	case *ast.BlockStmt:
-		stmtList = &node.List
-	case *ast.CaseClause:
-		stmtList = &node.Body
-	case *ast.CommClause:
-		stmtList = &node.Body
-	default:
-		return // todo: Can't handle this node type
-	}
-
-	// Insert the empty statement before the return/branch statement
-	newList := make([]ast.Stmt, 0, len(*stmtList)+1)
-	newList = append(newList, (*stmtList)[:returnIdx]...)
-	newList = append(newList, &ast.EmptyStmt{Semicolon: token.NoPos, Implicit: true})
-	newList = append(newList, (*stmtList)[returnIdx:]...)
-
-	*stmtList = newList
-	f.modified = true
-
-	if f.verbose {
-		pos := f.fset.Position((*stmtList)[returnIdx+1].Pos())
-		fmt.Printf("Inserted blank line before %s at %s\n", name((*stmtList)[returnIdx+1]), pos)
-	}
-}
-
-func name(stmt ast.Stmt) string {
-	switch s := stmt.(type) {
-	case *ast.BranchStmt:
-		return s.Tok.String()
 	case *ast.ReturnStmt:
-		return "return"
+		name = "return"
+	case *ast.BranchStmt:
+		name = node.Tok.String()
 	default:
-		return "unknown"
+		return true
 	}
+
+	if f.shouldInsert(c) {
+		c.InsertBefore(&ast.EmptyStmt{
+			Semicolon: 0,
+			Implicit:  true,
+		})
+		f.modified = true
+
+		if f.verbose {
+			pos := f.fset.Position(c.Node().Pos())
+			fmt.Printf("Inserted blank line before %s at %s\n", name, pos)
+		}
+	}
+
+	return true
 }
+
+func (f *formater) shouldInsert(ret *astutil.Cursor) bool {
+	var block []ast.Stmt
+
+	switch node := ret.Parent().(type) {
+	case *ast.CaseClause:
+		block = node.Body
+	case *ast.CommClause:
+		block = node.Body
+	case *ast.BlockStmt:
+		block = node.List
+	default:
+		return false
+	}
+
+	if ret.Index() == 0 || f.line(ret.Node().Pos())-f.line(block[0].Pos()) < int(f.blockSize) {
+		return false
+	}
+
+	return f.line(ret.Node().Pos())-f.line(block[ret.Index()-1].End()) <= 1
+}
+
+func (f *formater) line(pos token.Pos) int { return f.fset.Position(pos).Line }

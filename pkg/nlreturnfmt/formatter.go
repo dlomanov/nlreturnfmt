@@ -68,27 +68,43 @@ func (f *Formater) FormatBytes(filename string, src []byte) ([]byte, bool, error
 	return f.formatBytes(filename, src)
 }
 
-func (f *Formater) FormatPath(path string) error {
+func (f *Formater) FormatPath(path string, recursive bool) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("os.Stat: %w", err)
 	}
 
 	if info.IsDir() {
-		return f.processDir(path)
+		return f.processDir(path, recursive)
 	}
 
 	return f.processFile(path)
 }
 
-func (f *Formater) processDir(dir string) error {
+func (f *Formater) processDir(dir string, recursive bool) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		if !info.IsDir() && strings.HasSuffix(path, ".go") && !strings.HasSuffix(path, "_test.go") {
-			return f.processFile(path)
+		name := info.Name()
+		switch {
+		case info.IsDir():
+			switch {
+			case strings.HasPrefix(name, "vendor"):
+				return filepath.SkipDir
+			case strings.HasPrefix(name, "testdata"):
+				return filepath.SkipDir
+			case strings.HasPrefix(name, "."):
+				return filepath.SkipDir
+			case !recursive:
+				return filepath.SkipDir
+			}
+		case strings.HasSuffix(name, "_test.go"):
+		case strings.HasSuffix(name, ".go"):
+			if err = f.processFile(path); err != nil {
+				return fmt.Errorf("processFile: %w", err)
+			}
 		}
 
 		return nil

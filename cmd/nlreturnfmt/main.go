@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"strings"
 )
 
 const (
@@ -89,7 +90,11 @@ func processSource(formatter *nlreturnfmt.Formater) error {
 
 func processPaths(formatter *nlreturnfmt.Formater, paths []string) error {
 	for _, path := range paths {
-		if err := formatter.FormatPath(path); err != nil {
+
+		if err := formatter.FormatPath(
+			strings.TrimSuffix(path, "/..."),
+			strings.HasSuffix(path, "/..."),
+		); err != nil {
 			return fmt.Errorf("formatter.FormatPath: %w", err)
 		}
 	}

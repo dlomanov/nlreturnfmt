@@ -2,6 +2,7 @@ package nlreturnfmt
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"go/ast"
 	"go/format"
@@ -23,9 +24,14 @@ type (
 	formater struct {
 		fset      *token.FileSet
 		blockSize uint
-		verbose   bool
 
 		modified bool
+		details  *strings.Builder
+	}
+	result struct {
+		value    []byte
+		modified bool
+		details  string
 	}
 )
 
@@ -60,12 +66,17 @@ func (f *Formater) formater() *formater {
 	return &formater{
 		fset:      token.NewFileSet(),
 		blockSize: f.blockSize,
-		verbose:   f.verbose,
+		details:   &strings.Builder{},
 	}
 }
 
 func (f *Formater) FormatBytes(filename string, src []byte) ([]byte, bool, error) {
-	return f.formatBytes(filename, src)
+	res, err := f.formatBytes(filename, src)
+	if err != nil {
+		return nil, false, fmt.Errorf("formatBytes: %w", err)
+	}
+
+	return res.value, res.modified, nil
 }
 
 func (f *Formater) FormatPath(path string, recursive bool) error {
@@ -84,30 +95,38 @@ func (f *Formater) FormatPath(path string, recursive bool) error {
 func (f *Formater) processDir(dir string, recursive bool) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
-			return err
+			return fmt.Errorf("filepath.Walk: %w", err)
 		}
-
 		name := info.Name()
-		switch {
-		case info.IsDir():
+
+		err = func() error {
 			switch {
-			case strings.HasPrefix(name, "vendor"):
-				return filepath.SkipDir
-			case strings.HasPrefix(name, "testdata"):
-				return filepath.SkipDir
-			case strings.HasPrefix(name, "."):
-				return filepath.SkipDir
-			case !recursive:
-				return filepath.SkipDir
+			case info.IsDir():
+				switch {
+				case strings.HasPrefix(name, "vendor"):
+					return filepath.SkipDir
+				case strings.HasPrefix(name, "testdata"):
+					return filepath.SkipDir
+				case name != "." && strings.HasPrefix(name, "."):
+					return filepath.SkipDir
+				case !recursive:
+					return filepath.SkipDir
+				}
+			case strings.HasSuffix(name, "_test.go"):
+			case strings.HasSuffix(name, ".go"):
+				if err = f.processFile(path); err != nil {
+					return fmt.Errorf("processFile: %w", err)
+				}
 			}
-		case strings.HasSuffix(name, "_test.go"):
-		case strings.HasSuffix(name, ".go"):
-			if err = f.processFile(path); err != nil {
-				return fmt.Errorf("processFile: %w", err)
-			}
+
+			return nil
+		}()
+
+		if errors.Is(err, filepath.SkipDir) && f.verbose {
+			fmt.Printf("%s skipped\n", path)
 		}
 
-		return nil
+		return err
 	})
 }
 
@@ -117,57 +136,54 @@ func (f *Formater) processFile(filename string) error {
 		return fmt.Errorf("os.ReadFile: %w", err)
 	}
 
-	result, modified, err := f.formatBytes(filename, src)
-	if err != nil {
+	res, err := f.formatBytes(filename, src)
+	switch {
+	case err != nil:
 		return fmt.Errorf("formatBytes: %w", err)
-	}
-
-	if !modified {
-		if f.verbose {
-			fmt.Printf("%s: no changes needed\n", filename)
-		}
-
-		return nil
-	}
-
-	if f.dryRun {
+	case !res.modified && f.verbose:
+		fmt.Printf("%s: no changes needed\n", filename)
+	case !res.modified:
+	case f.dryRun && f.verbose:
+		fmt.Printf("%s: would be modified\n%s", filename, res.details)
+	case f.dryRun:
 		fmt.Printf("%s: would be modified\n", filename)
-
-		return nil
-	}
-
-	if f.write {
+	case f.write:
 		if f.verbose {
-			fmt.Printf("%s: formatted\n", filename)
+			fmt.Printf("%s: formatted\n%s", filename, res.details)
 		}
-
-		return os.WriteFile(filename, result, 0644)
+		if err = os.WriteFile(filename, res.value, 0644); err != nil {
+			return fmt.Errorf("os.WriteFile: %w", err)
+		}
+	default:
+		fmt.Printf("// %s - formatted:\n%s\n", filename, string(res.value))
 	}
-
-	fmt.Printf("// %s - formatted:\n%s\n", filename, string(result))
 
 	return nil
 }
 
-func (f *Formater) formatBytes(filename string, src []byte) ([]byte, bool, error) {
+func (f *Formater) formatBytes(filename string, src []byte) (result, error) {
 	ff := f.formater()
 
 	file, err := parser.ParseFile(ff.fset, filename, src, parser.ParseComments)
 	if err != nil {
-		return nil, false, fmt.Errorf("parser.ParseFile: %w", err)
+		return result{}, fmt.Errorf("parser.ParseFile: %w", err)
 	}
 
-	result := astutil.Apply(file, nil, ff.format)
+	res := astutil.Apply(file, nil, ff.format)
 	if !ff.modified {
-		return src, false, nil
+		return result{}, nil
 	}
 
 	var buf bytes.Buffer
-	if err = format.Node(&buf, ff.fset, result); err != nil {
-		return nil, false, err
+	if err = format.Node(&buf, ff.fset, res); err != nil {
+		return result{}, err
 	}
 
-	return buf.Bytes(), true, nil
+	return result{
+		value:    buf.Bytes(),
+		modified: true,
+		details:  ff.details.String(),
+	}, nil
 }
 
 func (f *formater) format(c *astutil.Cursor) bool {
@@ -186,10 +202,8 @@ func (f *formater) format(c *astutil.Cursor) bool {
 		c.InsertBefore(newBlankLine(c.Node()))
 		f.modified = true
 
-		if f.verbose {
-			pos := f.fset.Position(c.Node().Pos())
-			fmt.Printf("- inserted blank line before %s at %s\n", name, pos)
-		}
+		pos := f.fset.Position(c.Node().Pos())
+		_, _ = fmt.Fprintf(f.details, "- insert blank line before %s at %s\n", name, pos)
 	}
 
 	return true

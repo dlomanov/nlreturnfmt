@@ -8,10 +8,11 @@ import (
 	"go/format"
 	"go/parser"
 	"go/token"
-	"golang.org/x/tools/go/ast/astutil"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"golang.org/x/tools/go/ast/astutil"
 )
 
 type (
@@ -40,12 +41,15 @@ type Option func(*Formater)
 func WithBlockSize(blockSize uint) Option {
 	return func(f *Formater) { f.blockSize = blockSize }
 }
+
 func WithWrite() Option {
 	return func(f *Formater) { f.write = true }
 }
+
 func WithDryRun() Option {
 	return func(f *Formater) { f.dryRun = true }
 }
+
 func WithVerbose() Option {
 	return func(f *Formater) { f.verbose = true }
 }
@@ -79,20 +83,20 @@ func (f *Formater) FormatBytes(filename string, src []byte) ([]byte, bool, error
 	return res.value, res.modified, nil
 }
 
-func (f *Formater) FormatPath(path string, recursive bool) error {
+func (f *Formater) FormatPath(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("os.Stat: %w", err)
 	}
 
 	if info.IsDir() {
-		return f.processDir(path, recursive)
+		return f.processDir(path)
 	}
 
 	return f.processFile(path)
 }
 
-func (f *Formater) processDir(dir string, recursive bool) error {
+func (f *Formater) processDir(dir string) error {
 	return filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return fmt.Errorf("filepath.Walk: %w", err)
@@ -109,8 +113,8 @@ func (f *Formater) processDir(dir string, recursive bool) error {
 					return filepath.SkipDir
 				case name != "." && strings.HasPrefix(name, "."):
 					return filepath.SkipDir
-				case !recursive:
-					return filepath.SkipDir
+				default:
+					return nil
 				}
 			case strings.HasSuffix(name, "_test.go"):
 			case strings.HasSuffix(name, ".go"):
@@ -151,7 +155,8 @@ func (f *Formater) processFile(filename string) error {
 		if f.verbose {
 			fmt.Printf("%s: formatted\n%s", filename, res.details)
 		}
-		if err = os.WriteFile(filename, res.value, 0644); err != nil {
+		//nolint: gosec
+		if err = os.WriteFile(filename, res.value, 0o644); err != nil {
 			return fmt.Errorf("os.WriteFile: %w", err)
 		}
 	default:
@@ -187,7 +192,7 @@ func (f *Formater) formatBytes(filename string, src []byte) (result, error) {
 }
 
 func (f *formater) format(c *astutil.Cursor) bool {
-	var name = "unknown"
+	var name string
 
 	switch node := c.Node().(type) {
 	case *ast.ReturnStmt:
@@ -223,7 +228,8 @@ func (f *formater) shouldInsert(ret *astutil.Cursor) bool {
 		return false
 	}
 
-	if ret.Index() == 0 || f.line(ret.Node().Pos())-f.line(block[0].Pos()) < int(f.blockSize) {
+	//nolint: gosec
+	if ret.Index() == 0 || uint(f.line(ret.Node().Pos())-f.line(block[0].Pos())) < f.blockSize {
 		return false
 	}
 

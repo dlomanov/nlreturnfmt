@@ -1,13 +1,13 @@
 package main
 
 import (
-	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 	"flag"
 	"fmt"
 	"io"
 	"log"
 	"os"
-	"strings"
+
+	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 )
 
 const (
@@ -23,6 +23,7 @@ var (
 )
 
 func main() {
+	//nolint: reassign
 	flag.Usage = func() {
 		_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [flags] [path ...]", formatterName)
 		_, _ = fmt.Fprintf(os.Stderr, "\n%s", formatterDoc)
@@ -54,11 +55,11 @@ func main() {
 func process(formatter *nlreturnfmt.Formater) error {
 	if flag.NArg() == 0 {
 		if err := processSource(formatter); err != nil {
-			return fmt.Errorf("processSource: %v", err)
+			return fmt.Errorf("processSource: %w", err)
 		}
 	} else {
 		if err := processPaths(formatter, flag.Args()); err != nil {
-			return fmt.Errorf("processPaths: %v", err)
+			return fmt.Errorf("processPaths: %w", err)
 		}
 	}
 
@@ -90,11 +91,7 @@ func processSource(formatter *nlreturnfmt.Formater) error {
 
 func processPaths(formatter *nlreturnfmt.Formater, paths []string) error {
 	for _, path := range paths {
-
-		if err := formatter.FormatPath(
-			strings.TrimSuffix(path, "/..."),
-			strings.HasSuffix(path, "/..."),
-		); err != nil {
+		if err := formatter.FormatPath(path); err != nil {
 			return fmt.Errorf("formatter.FormatPath: %w", err)
 		}
 	}

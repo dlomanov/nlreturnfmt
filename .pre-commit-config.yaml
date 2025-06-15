@@ -1,12 +1,6 @@
 repos:
   - repo: local
     hooks:
-      - id: smartimports
-        name: run smartimports
-        entry: ./bin/smartimports
-        language: system
-        pass_filenames: false
-
       - id: gofumpt
         name: run gofumpt
         entry: ./bin/gofumpt -l -w .

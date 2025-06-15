@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	formatterName = "nlreturn-formatter"
-	formatterDoc  = `A Go code formatter that inserts blank lines before return and branch statements except when the return is alone inside a statement group (such as an if statement) to increase code clarity.`
+	formatterName = "nlreturnfmt"
+	formatterDoc  = `A Go code formatter that inserts blank lines before return and branch statements to increase code clarity.`
 )
 
 var (

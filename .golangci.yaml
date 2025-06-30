@@ -94,6 +94,7 @@ linters:
     - nilnil # checks that there is no simultaneous return of nil error and an invalid value
     - noctx # finds sending http request without context.Context
     - nolintlint # reports ill-formed or insufficient nolint directives
+    - nlreturn # checks for a new line before return and branch statements to increase code clarity
     - nonamedreturns # reports all named returns
     - nosprintfhostport # checks for misuse of Sprintf to construct a host with port in a URL
     - perfsprint # checks that fmt.Sprintf can be replaced with a faster alternative
@@ -150,7 +151,6 @@ linters:
     #- lll # [replaced by golines] reports long lines
     #- maintidx # measures the maintainability index of each function
     #- misspell # [useless] finds commonly misspelled English words in comments
-    #- nlreturn # [too strict and mostly code is not more readable] checks for a new line before return and branch statements to increase code clarity
     #- paralleltest # [too many false positives] detects missing usage of t.Parallel() method in your Go test
     #- tagliatelle # checks the struct tags
     #- thelper # detects golang test helpers without t.Helper() call and checks the consistency of test helpers
@@ -352,6 +352,9 @@ linters:
       # Enable to require nolint directives to mention the specific linter being suppressed.
       # Default: false
       require-specific: true
+
+    nlreturn:
+      block-size: 1
 
     perfsprint:
       # Optimizes into strings concatenation.

@@ -1,7 +1,13 @@
 LOCAL_BIN := $(shell pwd)/bin
 GOLANGCI_LINT_VERSION = v2.1.6
 
-.PHONY: help install-tools format build run test test-verbose test-coverage lint clean
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
+COMMIT ?= $(shell git rev-parse HEAD 2>/dev/null || echo "unknown")
+DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
+
+LDFLAGS = -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
+
+.PHONY: help install-tools format build build-release run test test-verbose test-coverage lint clean docker-build
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -30,7 +36,15 @@ format: install-tools ## Format code using pre-commit hooks
 	pre-commit run --all-files
 
 build: ## Build the application
-	go build -o bin/nlreturnfmt ./cmd/nlreturnfmt
+	go build -ldflags "$(LDFLAGS)" -o bin/nlreturnfmt ./cmd/nlreturnfmt
+
+docker-build: ## Build the Docker image with version info
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg DATE=$(DATE) \
+		-f build/Dockerfile \
+		-t nlreturnfmt:$(VERSION) .
 
 run: build ## Build and run the application
 	./bin/nlreturnfmt
@@ -49,4 +63,3 @@ lint: install-tools ## Run linter
 
 clean: ## Clean build artifacts
 	rm -rf bin/
-

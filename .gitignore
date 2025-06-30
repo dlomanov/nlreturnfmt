@@ -14,6 +14,10 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
+# Coverage files
+coverage.out
+coverage.html
+
 # Dependency directories (remove the comment below to include it)
 # vendor/
 
@@ -29,3 +33,11 @@ bin/
 
 # JetBrains IDE
 .idea
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini

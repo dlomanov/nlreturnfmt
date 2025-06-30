@@ -10,16 +10,23 @@ import (
 	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 )
 
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
 const (
 	formatterName = "nlreturnfmt"
 	formatterDoc  = `A Go code formatter that inserts blank lines before return and branch statements to increase code clarity.`
 )
 
 var (
-	blockSize = flag.Uint("block-size", 1, "set block size that is still ok")
-	write     = flag.Bool("w", false, "write result to (source) file instead of stdout")
-	dryRun    = flag.Bool("n", false, "don't modify files, just print what would be changed")
-	verbose   = flag.Bool("v", false, "verbose output")
+	blockSize   = flag.Uint("block-size", 1, "set block size that is still ok")
+	write       = flag.Bool("w", false, "write result to (source) file instead of stdout")
+	dryRun      = flag.Bool("n", false, "don't modify files, just print what would be changed")
+	verbose     = flag.Bool("v", false, "verbose output")
+	showVersion = flag.Bool("version", false, "show version information")
 )
 
 func main() {
@@ -31,6 +38,12 @@ func main() {
 		flag.PrintDefaults()
 	}
 	flag.Parse()
+
+	if showVersion != nil && *showVersion {
+		fmt.Printf("%s version %s (commit: %s, date: %s)\n", formatterName, version, commit, date)
+
+		return
+	}
 
 	var opts []nlreturnfmt.Option
 	if blockSize != nil {

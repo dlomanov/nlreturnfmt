@@ -21,7 +21,7 @@ nlreturnfmt [flags] [path ...]
 * `-w` write result to (source) file instead of stdout
 * `-n` don't modify files, just print what would be changed (dry-run)
 * `-v` verbose output
-* `-block-size n` set block size that is still ok (default: 1)
+* `--block-size n` set block size that is still ok (default: 1)
 
 ### Examples
 
@@ -48,7 +48,6 @@ nlreturnfmt -n -v file.go
 **Read from stdin:**
 ```bash
 cat file.go | nlreturnfmt
-```
 
 ## Example
 
@@ -115,10 +114,10 @@ func baz() {
 
 ## Block Size
 
-The `-block-size` parameter controls the minimum number of statements required in a block before blank lines are enforced.
+The `--block-size` parameter controls the minimum number of statements required in a block before blank lines are enforced.
 With the default value of 1, blank lines are required before return/branch statements in blocks with more than 1 non-empty statement.
 
-### Example with `-block-size 2`:
+### Example with `--block-size 2`:
 
 ```go
 // This would NOT be formatted (block size <= 2)

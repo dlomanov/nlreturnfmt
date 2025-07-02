@@ -27,6 +27,7 @@ var (
 	dryRun      = flag.Bool("n", false, "don't modify files, just print what would be changed")
 	verbose     = flag.Bool("v", false, "verbose output")
 	showVersion = flag.Bool("version", false, "show version information")
+	parallelism = flag.Int("parallelism", 0, "number of files to process in parallel (0 = auto, default = 15)")
 )
 
 func main() {
@@ -57,6 +58,9 @@ func main() {
 	}
 	if verbose != nil && *verbose {
 		opts = append(opts, nlreturnfmt.WithVerbose())
+	}
+	if parallelism != nil {
+		opts = append(opts, nlreturnfmt.WithParallelism(*parallelism))
 	}
 	formatter := nlreturnfmt.New(opts...)
 

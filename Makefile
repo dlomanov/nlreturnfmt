@@ -7,7 +7,7 @@ DATE ?= $(shell date -u +"%Y-%m-%dT%H:%M:%SZ")
 
 LDFLAGS = -X main.version=$(VERSION) -X main.commit=$(COMMIT) -X main.date=$(DATE)
 
-.PHONY: help install-tools format build build-release run test test-verbose test-coverage lint clean docker-build
+.PHONY: help install-tools format build build-release run test test-verbose test-coverage lint clean
 
 help: ## Show this help message
 	@echo "Available commands:"
@@ -38,25 +38,11 @@ format: install-tools ## Format code using pre-commit hooks
 build: ## Build the application
 	go build -ldflags "$(LDFLAGS)" -o bin/nlreturnfmt ./cmd/nlreturnfmt
 
-docker-build: ## Build the Docker image with version info
-	docker build \
-		--build-arg VERSION=$(VERSION) \
-		--build-arg COMMIT=$(COMMIT) \
-		--build-arg DATE=$(DATE) \
-		-f build/Dockerfile \
-		-t nlreturnfmt:$(VERSION) .
-
 run: build ## Build and run the application
 	./bin/nlreturnfmt
 
 test: ## Run tests
-	go test ./...
-
-test-verbose: ## Run tests with verbose output
-	go test -v ./...
-
-test-coverage: ## Run tests with coverage
-	go test -cover ./...
+	go test -race ./...
 
 lint: install-tools ## Run linter
 	./bin/golangci-lint run ./...

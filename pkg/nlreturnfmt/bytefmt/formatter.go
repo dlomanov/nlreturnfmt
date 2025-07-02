@@ -21,6 +21,7 @@ type (
 		details  *strings.Builder
 	}
 	Result struct {
+		Filename string
 		Value    []byte
 		Modified bool
 		Details  string
@@ -52,6 +53,7 @@ func (f *Formater) Format(filename string, src []byte) (Result, error) {
 	}
 
 	return Result{
+		Filename: filename,
 		Value:    buf.Bytes(),
 		Modified: true,
 		Details:  f.details.String(),

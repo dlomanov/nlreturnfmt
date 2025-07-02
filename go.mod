@@ -2,7 +2,10 @@ module dlomanov/nlreturnfmt
 
 go 1.24.3
 
-require golang.org/x/tools v0.34.0
+require (
+	golang.org/x/sync v0.15.0
+	golang.org/x/tools v0.34.0
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect

@@ -17,3 +17,11 @@ func WithDryRun() Option {
 func WithVerbose() Option {
 	return func(f *Formater) { f.verbose = true }
 }
+
+func WithParallelism(n int) Option {
+	return func(f *Formater) {
+		if n > 0 {
+			f.parallelism = n
+		}
+	}
+}

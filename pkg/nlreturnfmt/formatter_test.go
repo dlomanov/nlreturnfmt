@@ -39,7 +39,7 @@ func TestFormatter_FormatBytes(t *testing.T) {
 			require.NoError(t, err)
 
 			sut := nlreturnfmt.New(nlreturnfmt.WithBlockSize(tt.blockSize))
-			got, _, err := sut.FormatBytes(tt.input, input)
+			got, _, err := sut.FormatFile(tt.input, input)
 			require.NoError(t, err)
 
 			assert.Equal(t, string(want), string(got), "formatted output does not match want file for %s", tt.name)

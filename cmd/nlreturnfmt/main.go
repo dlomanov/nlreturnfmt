@@ -85,9 +85,9 @@ func processSource(formatter *nlreturnfmt.Formater) error {
 		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 
-	result, modified, err := formatter.FormatBytes("<stdin>", src)
+	result, modified, err := formatter.FormatFile("<stdin>", src)
 	if err != nil {
-		return fmt.Errorf("formatter.FormatBytes: %w", err)
+		return fmt.Errorf("formatter.FormatFile: %w", err)
 	}
 
 	if !modified {

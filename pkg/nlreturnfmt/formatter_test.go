@@ -14,7 +14,7 @@ func TestFormatter_FormatBytes(t *testing.T) {
 	tests := []struct {
 		name      string
 		input     string
-		blockSize uint
+		blockSize int
 		want      string
 	}{
 		{

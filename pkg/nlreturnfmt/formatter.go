@@ -17,8 +17,8 @@ import (
 const blockSizeDefault = 1
 
 type (
-	Formater struct {
-		blockSize   uint
+	Formatter struct {
+		blockSize   int
 		write       bool
 		dryRun      bool
 		verbose     bool
@@ -26,8 +26,8 @@ type (
 	}
 )
 
-func New(opts ...Option) *Formater {
-	f := &Formater{
+func New(opts ...Option) *Formatter {
+	f := &Formatter{
 		blockSize:   blockSizeDefault,
 		parallelism: runtime.NumCPU(),
 	}
@@ -39,7 +39,7 @@ func New(opts ...Option) *Formater {
 	return f
 }
 
-func (f *Formater) FormatFile(filename string, src []byte) ([]byte, bool, error) {
+func (f *Formatter) FormatFile(filename string, src []byte) ([]byte, bool, error) {
 	res, err := f.format(filename, src)
 	if err != nil {
 		return nil, false, fmt.Errorf("format: %w", err)
@@ -48,7 +48,7 @@ func (f *Formater) FormatFile(filename string, src []byte) ([]byte, bool, error)
 	return res.Value, res.Modified, nil
 }
 
-func (f *Formater) FormatPath(path string) error {
+func (f *Formatter) FormatPath(path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("os.Stat: %w", err)
@@ -61,7 +61,7 @@ func (f *Formater) FormatPath(path string) error {
 	return f.processFile(path)
 }
 
-func (f *Formater) processDir(dir string) error {
+func (f *Formatter) processDir(dir string) error {
 	g, ctx := errgroup.WithContext(context.Background())
 	g.SetLimit(f.parallelism)
 
@@ -115,7 +115,7 @@ func (f *Formater) processDir(dir string) error {
 	return errors.Join(errs, g.Wait())
 }
 
-func (f *Formater) processDirWalk(path string, info os.FileInfo, err error, fn func(string) error) error {
+func (f *Formatter) processDirWalk(path string, info os.FileInfo, err error, fn func(string) error) error {
 	if err != nil {
 		return fmt.Errorf("filepath.Walk: %w", err)
 	}
@@ -151,7 +151,7 @@ func (f *Formater) processDirWalk(path string, info os.FileInfo, err error, fn f
 	return err
 }
 
-func (f *Formater) processFile(filename string) error {
+func (f *Formatter) processFile(filename string) error {
 	src, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("os.ReadFile: %w", err)
@@ -169,7 +169,7 @@ func (f *Formater) processFile(filename string) error {
 	return nil
 }
 
-func (f *Formater) processFileResult(res bytefmt.Result) error {
+func (f *Formatter) processFileResult(res bytefmt.Result) error {
 	switch {
 	case !res.Modified && f.verbose:
 		fmt.Printf("%s: no changes needed\n", res.Filename)
@@ -193,7 +193,7 @@ func (f *Formater) processFileResult(res bytefmt.Result) error {
 	return nil
 }
 
-func (f *Formater) format(filename string, src []byte) (bytefmt.Result, error) {
+func (f *Formatter) format(filename string, src []byte) (bytefmt.Result, error) {
 	ff := bytefmt.New(f.blockSize)
 
 	return ff.Format(filename, src)

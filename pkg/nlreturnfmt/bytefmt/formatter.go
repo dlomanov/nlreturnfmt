@@ -15,7 +15,7 @@ import (
 type (
 	Formater struct {
 		fset      *token.FileSet
-		blockSize uint
+		blockSize int
 
 		modified bool
 		details  *strings.Builder
@@ -28,7 +28,7 @@ type (
 	}
 )
 
-func New(blockSize uint) *Formater {
+func New(blockSize int) *Formater {
 	return &Formater{
 		fset:      token.NewFileSet(),
 		blockSize: blockSize,
@@ -97,8 +97,7 @@ func (f *Formater) shouldInsert(ret *astutil.Cursor) bool {
 		return false
 	}
 
-	//nolint: gosec
-	if ret.Index() == 0 || uint(f.line(ret.Node().Pos())-f.line(block[0].Pos())) < f.blockSize {
+	if ret.Index() == 0 || f.line(ret.Node().Pos())-f.line(block[0].Pos()) < f.blockSize {
 		return false
 	}
 

@@ -22,7 +22,7 @@ const (
 )
 
 var (
-	blockSize   = flag.Uint("block-size", 1, "set block size that is still ok")
+	blockSize   = flag.Int("block-size", 1, "set block size that is still ok")
 	write       = flag.Bool("w", false, "write result to (source) file instead of stdout")
 	dryRun      = flag.Bool("n", false, "don't modify files, just print what would be changed")
 	verbose     = flag.Bool("v", false, "verbose output")
@@ -69,7 +69,7 @@ func main() {
 	}
 }
 
-func process(formatter *nlreturnfmt.Formater) error {
+func process(formatter *nlreturnfmt.Formatter) error {
 	if flag.NArg() == 0 {
 		if err := processSource(formatter); err != nil {
 			return fmt.Errorf("processSource: %w", err)
@@ -83,7 +83,7 @@ func process(formatter *nlreturnfmt.Formater) error {
 	return nil
 }
 
-func processSource(formatter *nlreturnfmt.Formater) error {
+func processSource(formatter *nlreturnfmt.Formatter) error {
 	src, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("io.ReadAll: %w", err)
@@ -106,7 +106,7 @@ func processSource(formatter *nlreturnfmt.Formater) error {
 	return nil
 }
 
-func processPaths(formatter *nlreturnfmt.Formater, paths []string) error {
+func processPaths(formatter *nlreturnfmt.Formatter, paths []string) error {
 	for _, path := range paths {
 		if err := formatter.FormatPath(path); err != nil {
 			return fmt.Errorf("formatter.FormatPath: %w", err)

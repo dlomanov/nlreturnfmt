@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -13,10 +14,7 @@ import (
 	"dlomanov/nlreturnfmt/pkg/nlreturnfmt/bytefmt"
 )
 
-const (
-	blockSizeDefault   = 1
-	parallelismDefault = 15
-)
+const blockSizeDefault = 1
 
 type (
 	Formatter struct {
@@ -25,24 +23,29 @@ type (
 		dryRun      bool
 		verbose     bool
 		parallelism int
+		bytefmt     *bytefmt.Formatter
 	}
 )
 
 func New(opts ...Option) *Formatter {
 	f := &Formatter{
 		blockSize:   blockSizeDefault,
-		parallelism: parallelismDefault,
+		parallelism: runtime.NumCPU(),
 	}
-
 	for _, opt := range opts {
 		opt(f)
 	}
+	f.bytefmt = bytefmt.New(f.blockSize)
 
 	return f
 }
 
-func (f *Formatter) FormatFile(filename string, src []byte) ([]byte, bool, error) {
-	res, err := f.format(filename, src)
+func (f *Formatter) FormatFile(ctx context.Context, filename string, src []byte) ([]byte, bool, error) {
+	if err := ctx.Err(); err != nil {
+		return nil, false, err
+	}
+
+	res, err := f.bytefmt.Format(filename, src)
 	if err != nil {
 		return nil, false, fmt.Errorf("format: %w", err)
 	}
@@ -50,21 +53,21 @@ func (f *Formatter) FormatFile(filename string, src []byte) ([]byte, bool, error
 	return res.Value, res.Modified, nil
 }
 
-func (f *Formatter) FormatPath(path string) error {
+func (f *Formatter) FormatPath(ctx context.Context, path string) error {
 	info, err := os.Stat(path)
 	if err != nil {
 		return fmt.Errorf("os.Stat: %w", err)
 	}
 
 	if info.IsDir() {
-		return f.processDir(path)
+		return f.processDir(ctx, path)
 	}
 
-	return f.processFile(path)
+	return f.processFile(ctx, path)
 }
 
-func (f *Formatter) processDir(dir string) error {
-	g, ctx := errgroup.WithContext(context.Background())
+func (f *Formatter) processDir(ctx context.Context, dir string) error {
+	g, ctx := errgroup.WithContext(ctx)
 	g.SetLimit(f.parallelism)
 
 	resch := make(chan bytefmt.Result, f.parallelism)
@@ -80,7 +83,7 @@ func (f *Formatter) processDir(dir string) error {
 		}
 
 		g.Go(func() error {
-			res, innerr := f.format(filename, src)
+			res, innerr := f.bytefmt.Format(filename, src)
 			if innerr != nil {
 				return fmt.Errorf("format: %w", innerr)
 			}
@@ -153,13 +156,17 @@ func (f *Formatter) processDirWalk(path string, info os.FileInfo, err error, fn 
 	return err
 }
 
-func (f *Formatter) processFile(filename string) error {
+func (f *Formatter) processFile(ctx context.Context, filename string) error {
+	if err := ctx.Err(); err != nil {
+		return err
+	}
+
 	src, err := os.ReadFile(filename)
 	if err != nil {
 		return fmt.Errorf("os.ReadFile: %w", err)
 	}
 
-	res, err := f.format(filename, src)
+	res, err := f.bytefmt.Format(filename, src)
 	if err != nil {
 		return fmt.Errorf("format: %w", err)
 	}
@@ -193,10 +200,4 @@ func (f *Formatter) processFileResult(res bytefmt.Result) error {
 	}
 
 	return nil
-}
-
-func (f *Formatter) format(filename string, src []byte) (bytefmt.Result, error) {
-	ff := bytefmt.New(f.blockSize)
-
-	return ff.Format(filename, src)
 }

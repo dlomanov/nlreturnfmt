@@ -4,6 +4,16 @@ A Go code formatter that automatically inserts blank lines before return and bra
 
 Based on https://github.com/ssgreg/nlreturn
 
+## PRE-publish TODO:
+
+- [X] fix github action: golangci-lint exit with code 3
+- [X] add app ctx
+- [ ] write e2e with os/exec for main package
+- [ ] cover formatter.go - add golden files for edge cases
+- [X] parallelize formatter
+- [ ] add build/Dockerfile
+- [ ] add go report and coverage labels
+
 ## Installation
 
 ```bash
@@ -21,7 +31,7 @@ nlreturnfmt [flags] [path ...]
 * `-w` write result to (source) file instead of stdout
 * `-n` don't modify files, just print what would be changed (dry-run)
 * `-v` verbose output
-* `--block-size n` set block size that is still ok (default: 1)
+* `-block-size n` set block size that is still ok (default: 1)
 
 ### Examples
 
@@ -114,10 +124,10 @@ func baz() {
 
 ## Block Size
 
-The `--block-size` parameter controls the minimum number of statements required in a block before blank lines are enforced.
+The `-block-size` parameter controls the minimum number of statements required in a block before blank lines are enforced.
 With the default value of 1, blank lines are required before return/branch statements in blocks with more than 1 non-empty statement.
 
-### Example with `--block-size 2`:
+### Example with `-block-size 2`:
 
 ```go
 // This would NOT be formatted (block size <= 2)

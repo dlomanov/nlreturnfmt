@@ -16,9 +16,6 @@ type (
 	Formatter struct {
 		fset      *token.FileSet
 		blockSize int
-
-		modified bool
-		details  *strings.Builder
 	}
 	Result struct {
 		Filename string
@@ -32,7 +29,6 @@ func New(blockSize int) *Formatter {
 	return &Formatter{
 		fset:      token.NewFileSet(),
 		blockSize: blockSize,
-		details:   &strings.Builder{},
 	}
 }
 
@@ -42,10 +38,33 @@ func (f *Formatter) Format(filename string, src []byte) (Result, error) {
 		return Result{}, fmt.Errorf("parser.ParseFile: %w", err)
 	}
 
-	res := astutil.Apply(file, nil, f.format)
-	if !f.modified {
-		return Result{}, nil
-	}
+	var (
+		modified bool
+		details  = &strings.Builder{}
+	)
+
+	res := astutil.Apply(file, nil, func(c *astutil.Cursor) bool {
+		var name string
+
+		switch node := c.Node().(type) {
+		case *ast.ReturnStmt:
+			name = "return"
+		case *ast.BranchStmt:
+			name = node.Tok.String()
+		default:
+			return true
+		}
+
+		if f.shouldInsert(c) {
+			c.InsertBefore(newBlankLine(c.Node()))
+			modified = true
+
+			pos := f.fset.Position(c.Node().Pos())
+			_, _ = fmt.Fprintf(details, "- insert blank line before %s at %s\n", name, pos)
+		}
+
+		return true
+	})
 
 	var buf bytes.Buffer
 	if err = format.Node(&buf, f.fset, res); err != nil {
@@ -55,32 +74,9 @@ func (f *Formatter) Format(filename string, src []byte) (Result, error) {
 	return Result{
 		Filename: filename,
 		Value:    buf.Bytes(),
-		Modified: true,
-		Details:  f.details.String(),
+		Modified: modified,
+		Details:  details.String(),
 	}, nil
-}
-
-func (f *Formatter) format(c *astutil.Cursor) bool {
-	var name string
-
-	switch node := c.Node().(type) {
-	case *ast.ReturnStmt:
-		name = "return"
-	case *ast.BranchStmt:
-		name = node.Tok.String()
-	default:
-		return true
-	}
-
-	if f.shouldInsert(c) {
-		c.InsertBefore(newBlankLine(c.Node()))
-		f.modified = true
-
-		pos := f.fset.Position(c.Node().Pos())
-		_, _ = fmt.Fprintf(f.details, "- insert blank line before %s at %s\n", name, pos)
-	}
-
-	return true
 }
 
 func (f *Formatter) shouldInsert(ret *astutil.Cursor) bool {

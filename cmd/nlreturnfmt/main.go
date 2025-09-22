@@ -1,15 +1,20 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"flag"
 	"fmt"
 	"io"
-	"log"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 )
+
+// Unix: 128 + signal number (SIGINT = 2).
+const exitCodeCanceled = 130
 
 var (
 	version = "dev"
@@ -28,10 +33,22 @@ var (
 	dryRun      = flag.Bool("n", false, "don't modify files, just print what would be changed")
 	verbose     = flag.Bool("v", false, "verbose output")
 	showVersion = flag.Bool("version", false, "show version information")
-	parallelism = flag.Int("parallelism", 0, "number of files to process in parallel (0 = auto, default = 15)")
+	parallelism = flag.Int("parallelism", 0, "number of files to process in parallel (0 = NumCPU)")
 )
 
 func main() {
+	err := run()
+	switch {
+	case errors.Is(err, context.Canceled):
+		_, _ = fmt.Fprintln(os.Stderr, "operation canceled")
+		os.Exit(exitCodeCanceled)
+	case err != nil:
+		_, _ = fmt.Fprintln(os.Stderr, "error:", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	//nolint: reassign
 	flag.Usage = func() {
 		_, _ = fmt.Fprintf(os.Stderr, "Usage: %s [flags] [path ...]", formatterName)
@@ -41,10 +58,10 @@ func main() {
 	}
 	flag.Parse()
 
-	if showVersion != nil && *showVersion {
+	if *showVersion {
 		fmt.Printf("%s version %s (commit: %s, date: %s)\n", formatterName, version, commit, date)
 
-		return
+		return nil
 	}
 
 	opts := []nlreturnfmt.Option{
@@ -62,21 +79,22 @@ func main() {
 	}
 	formatter := nlreturnfmt.New(opts...)
 
-	if err := process(formatter); err != nil {
-		log.Fatal(err)
-	}
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	return process(ctx, formatter)
 }
 
-func process(formatter *nlreturnfmt.Formatter) error {
+func process(ctx context.Context, formatter *nlreturnfmt.Formatter) error {
 	if flag.NArg() == 0 {
 		if *write {
 			return errors.New("-w flag is not supported when processing from stdin")
 		}
-		if err := processSource(formatter); err != nil {
+		if err := processSource(ctx, formatter); err != nil {
 			return fmt.Errorf("processSource: %w", err)
 		}
 	} else {
-		if err := processPaths(formatter, flag.Args()); err != nil {
+		if err := processPaths(ctx, formatter, flag.Args()); err != nil {
 			return fmt.Errorf("processPaths: %w", err)
 		}
 	}
@@ -84,13 +102,13 @@ func process(formatter *nlreturnfmt.Formatter) error {
 	return nil
 }
 
-func processSource(formatter *nlreturnfmt.Formatter) error {
+func processSource(ctx context.Context, formatter *nlreturnfmt.Formatter) error {
 	src, err := io.ReadAll(os.Stdin)
 	if err != nil {
 		return fmt.Errorf("io.ReadAll: %w", err)
 	}
 
-	result, modified, err := formatter.FormatFile("<stdin>", src)
+	result, modified, err := formatter.FormatFile(ctx, "<stdin>", src)
 	if err != nil {
 		return fmt.Errorf("formatter.FormatFile: %w", err)
 	}
@@ -107,9 +125,9 @@ func processSource(formatter *nlreturnfmt.Formatter) error {
 	return nil
 }
 
-func processPaths(formatter *nlreturnfmt.Formatter, paths []string) error {
+func processPaths(ctx context.Context, formatter *nlreturnfmt.Formatter, paths []string) error {
 	for _, path := range paths {
-		if err := formatter.FormatPath(path); err != nil {
+		if err := formatter.FormatPath(ctx, path); err != nil {
 			return fmt.Errorf("formatter.FormatPath: %w", err)
 		}
 	}

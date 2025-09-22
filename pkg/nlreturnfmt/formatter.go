@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"golang.org/x/sync/errgroup"
@@ -14,7 +13,10 @@ import (
 	"dlomanov/nlreturnfmt/pkg/nlreturnfmt/bytefmt"
 )
 
-const blockSizeDefault = 1
+const (
+	blockSizeDefault   = 1
+	parallelismDefault = 15
+)
 
 type (
 	Formatter struct {
@@ -29,7 +31,7 @@ type (
 func New(opts ...Option) *Formatter {
 	f := &Formatter{
 		blockSize:   blockSizeDefault,
-		parallelism: runtime.NumCPU(),
+		parallelism: parallelismDefault,
 	}
 
 	for _, opt := range opts {

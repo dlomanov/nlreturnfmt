@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -46,21 +47,18 @@ func main() {
 		return
 	}
 
-	var opts []nlreturnfmt.Option
-	if blockSize != nil {
-		opts = append(opts, nlreturnfmt.WithBlockSize(*blockSize))
+	opts := []nlreturnfmt.Option{
+		nlreturnfmt.WithBlockSize(*blockSize),
+		nlreturnfmt.WithParallelism(*parallelism),
 	}
-	if write != nil && *write {
+	if *write {
 		opts = append(opts, nlreturnfmt.WithWrite())
 	}
-	if dryRun != nil && *dryRun {
+	if *dryRun {
 		opts = append(opts, nlreturnfmt.WithDryRun())
 	}
-	if verbose != nil && *verbose {
+	if *verbose {
 		opts = append(opts, nlreturnfmt.WithVerbose())
-	}
-	if parallelism != nil {
-		opts = append(opts, nlreturnfmt.WithParallelism(*parallelism))
 	}
 	formatter := nlreturnfmt.New(opts...)
 
@@ -71,6 +69,9 @@ func main() {
 
 func process(formatter *nlreturnfmt.Formatter) error {
 	if flag.NArg() == 0 {
+		if *write {
+			return errors.New("-w flag is not supported when processing from stdin")
+		}
 		if err := processSource(formatter); err != nil {
 			return fmt.Errorf("processSource: %w", err)
 		}

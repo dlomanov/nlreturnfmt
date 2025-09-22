@@ -13,7 +13,7 @@ import (
 )
 
 type (
-	Formater struct {
+	Formatter struct {
 		fset      *token.FileSet
 		blockSize int
 
@@ -28,15 +28,15 @@ type (
 	}
 )
 
-func New(blockSize int) *Formater {
-	return &Formater{
+func New(blockSize int) *Formatter {
+	return &Formatter{
 		fset:      token.NewFileSet(),
 		blockSize: blockSize,
 		details:   &strings.Builder{},
 	}
 }
 
-func (f *Formater) Format(filename string, src []byte) (Result, error) {
+func (f *Formatter) Format(filename string, src []byte) (Result, error) {
 	file, err := parser.ParseFile(f.fset, filename, src, parser.ParseComments)
 	if err != nil {
 		return Result{}, fmt.Errorf("parser.ParseFile: %w", err)
@@ -60,7 +60,7 @@ func (f *Formater) Format(filename string, src []byte) (Result, error) {
 	}, nil
 }
 
-func (f *Formater) format(c *astutil.Cursor) bool {
+func (f *Formatter) format(c *astutil.Cursor) bool {
 	var name string
 
 	switch node := c.Node().(type) {
@@ -83,7 +83,7 @@ func (f *Formater) format(c *astutil.Cursor) bool {
 	return true
 }
 
-func (f *Formater) shouldInsert(ret *astutil.Cursor) bool {
+func (f *Formatter) shouldInsert(ret *astutil.Cursor) bool {
 	var block []ast.Stmt
 
 	switch node := ret.Parent().(type) {
@@ -97,6 +97,8 @@ func (f *Formater) shouldInsert(ret *astutil.Cursor) bool {
 		return false
 	}
 
+	// Do not add a newline if the statement is the first in the block,
+	// or if the block is too short (fewer lines than blockSize).
 	if ret.Index() == 0 || f.line(ret.Node().Pos())-f.line(block[0].Pos()) < f.blockSize {
 		return false
 	}
@@ -104,7 +106,7 @@ func (f *Formater) shouldInsert(ret *astutil.Cursor) bool {
 	return f.line(ret.Node().Pos())-f.line(block[ret.Index()-1].End()) <= 1
 }
 
-func (f *Formater) line(pos token.Pos) int { return f.fset.Position(pos).Line }
+func (f *Formatter) line(pos token.Pos) int { return f.fset.Position(pos).Line }
 
 func newBlankLine(node ast.Node) *ast.ExprStmt {
 	return &ast.ExprStmt{

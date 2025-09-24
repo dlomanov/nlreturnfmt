@@ -42,7 +42,7 @@ func TestCLI(t *testing.T) {
 			name:         "-version flag",
 			args:         []string{"-version"},
 			wantExitCode: 0,
-			wantStdout:   "nlreturnfmt version dev",
+			wantStdout:   "nlreturnfmt version v",
 		},
 		{
 			name: "format file to stdout",

@@ -8,6 +8,8 @@ import (
 	"io"
 	"os"
 	"os/signal"
+	"runtime/debug"
+	"strings"
 	"syscall"
 
 	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
@@ -16,10 +18,12 @@ import (
 // Unix: 128 + signal number (SIGINT = 2).
 const exitCodeCanceled = 130
 
+const shortCommitLen = 7
+
 var (
 	version = "dev"
-	commit  = "unknown"
-	date    = "unknown"
+	commit  = ""
+	date    = ""
 )
 
 const (
@@ -59,7 +63,7 @@ func run() error {
 	flag.Parse()
 
 	if *showVersion {
-		fmt.Printf("%s version %s (commit: %s, date: %s)\n", formatterName, version, commit, date)
+		fmt.Println(buildVersion())
 
 		return nil
 	}
@@ -133,4 +137,33 @@ func processPaths(ctx context.Context, formatter *nlreturnfmt.Formatter, paths [
 	}
 
 	return nil
+}
+
+func buildVersion() string {
+	ver := version
+	if ver == "dev" {
+		if info, ok := debug.ReadBuildInfo(); ok {
+			ver = info.Main.Version
+		}
+	}
+
+	var b strings.Builder
+	b.WriteString(fmt.Sprintf("%s version %s", formatterName, ver))
+
+	var details []string
+	if commit != "" {
+		shortCommit := commit
+		if len(commit) > shortCommitLen {
+			shortCommit = commit[:shortCommitLen]
+		}
+		details = append(details, fmt.Sprintf("commit: %s", shortCommit))
+	}
+	if date != "" {
+		details = append(details, fmt.Sprintf("date: %s", date))
+	}
+	if len(details) > 0 {
+		b.WriteString(fmt.Sprintf(" (%s)", strings.Join(details, ", ")))
+	}
+
+	return b.String()
 }

@@ -9,16 +9,6 @@ Based on https://github.com/ssgreg/nlreturn
 
 ---
 
-## PRE-publish TODO:
-
-- [X] fix github action: golangci-lint exit with code 3
-- [X] add app ctx
-- [X] cover formatter.go - add golden files for edge cases
-- [X] parallelize formatter
-- [X] add go report and coverage labels
-- [ ] write e2e with os/exec for main package
-- [ ] add build/Dockerfile
-
 ## Why `nlreturnfmt`?
 
 While powerful tools like `golangci-lint` offer a `--fix` option that can resolve issues from `nlreturn`, `nlreturnfmt` provides a simple, fast, and focused solution with several advantages:

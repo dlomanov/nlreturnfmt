@@ -1,18 +1,33 @@
 # nlreturnfmt
 
+[![Go Report Card](https://goreportcard.com/badge/github.com/dlomanov/nlreturnfmt)](https://goreportcard.com/report/github.com/dlomanov/nlreturnfmt)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 A Go code formatter that automatically inserts blank lines before return and branch statements except when the return is alone inside a statement group (such as an if statement) to increase code clarity.
 
 Based on https://github.com/ssgreg/nlreturn
+
+---
 
 ## PRE-publish TODO:
 
 - [X] fix github action: golangci-lint exit with code 3
 - [X] add app ctx
-- [ ] write e2e with os/exec for main package
-- [ ] cover formatter.go - add golden files for edge cases
+- [X] cover formatter.go - add golden files for edge cases
 - [X] parallelize formatter
+- [X] add go report and coverage labels
+- [ ] write e2e with os/exec for main package
 - [ ] add build/Dockerfile
-- [ ] add go report and coverage labels
+
+## Why `nlreturnfmt`?
+
+While powerful tools like `golangci-lint` offer a `--fix` option that can resolve issues from `nlreturn`, `nlreturnfmt` provides a simple, fast, and focused solution with several advantages:
+
+-   **Standalone & Lightweight:** No need to install or configure a large linter runner. `nlreturnfmt` does one thing and does it well.
+-   **Focused Operation:** It will *only* fix `nlreturn` issues, without touching anything else in your code. This gives you precise control over your formatting.
+-   **Perfect for CI/CD & Git Hooks:** Its speed and simplicity make it an ideal choice for scripts and automation, like pre-commit hooks, where performance is key.
+
+If you are already using `golangci-lint` for everything, its built-in fix mechanism might be sufficient. If you need a dedicated, fast, and simple tool to format `nlreturn` issues, `nlreturnfmt` is the perfect choice.
 
 ## Installation
 

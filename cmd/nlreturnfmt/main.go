@@ -12,7 +12,7 @@ import (
 	"strings"
 	"syscall"
 
-	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
+	"github.com/dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 )
 
 // Unix: 128 + signal number (SIGINT = 2).

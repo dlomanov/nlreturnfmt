@@ -1,10 +1,10 @@
-module dlomanov/nlreturnfmt
+module github.com/dlomanov/nlreturnfmt
 
 go 1.24.3
 
 require (
-	golang.org/x/sync v0.15.0
-	golang.org/x/tools v0.34.0
+	golang.org/x/sync v0.17.0
+	golang.org/x/tools v0.37.0
 )
 
 require (

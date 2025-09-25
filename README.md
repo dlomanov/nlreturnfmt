@@ -9,6 +9,8 @@ Based on https://github.com/ssgreg/nlreturn
 
 ---
 
+- [ ] fix showed version in case of go install
+
 ## Why `nlreturnfmt`?
 
 While powerful tools like `golangci-lint` offer a `--fix` option that can resolve issues from `nlreturn`, `nlreturnfmt` provides a simple, fast, and focused solution with several advantages:
@@ -22,7 +24,7 @@ If you are already using `golangci-lint` for everything, its built-in fix mechan
 ## Installation
 
 ```bash
-go install github.com/dlomanov/nlreturnfmt@latest
+go install github.com/dlomanov/nlreturnfmt/cmd/nlreturnfmt@latest
 ```
 
 ## Usage

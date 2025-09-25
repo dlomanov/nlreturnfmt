@@ -9,9 +9,9 @@ import (
 	"runtime"
 	"strings"
 
-	"golang.org/x/sync/errgroup"
+	"github.com/dlomanov/nlreturnfmt/pkg/nlreturnfmt/bytefmt"
 
-	"dlomanov/nlreturnfmt/pkg/nlreturnfmt/bytefmt"
+	"golang.org/x/sync/errgroup"
 )
 
 const blockSizeDefault = 1

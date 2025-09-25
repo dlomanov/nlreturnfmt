@@ -4,10 +4,10 @@ import (
 	"os"
 	"testing"
 
+	"github.com/dlomanov/nlreturnfmt/pkg/nlreturnfmt"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	"dlomanov/nlreturnfmt/pkg/nlreturnfmt"
 )
 
 func TestFormatter_FormatBytes(t *testing.T) {

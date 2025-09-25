@@ -2,6 +2,8 @@ module github.com/dlomanov/nlreturnfmt
 
 go 1.24.3
 
+retract v0.1.0 // Broken due to incorrect module path in go.mod
+
 require (
 	golang.org/x/sync v0.17.0
 	golang.org/x/tools v0.37.0
